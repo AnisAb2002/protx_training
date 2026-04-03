@@ -1,41 +1,46 @@
-import SQLite
 import Foundation
+import SQLite
 
 // Connection uses an internal serial queue, so it is safe to mark Sendable.
 extension Connection: @unchecked @retroactive Sendable {}
 
 struct Database {
+
     // Definitions for the Table
-    static let tasks = Table("tasks")
-    static let id = Expression<Int64>("id")
-    static let title = Expression<String>("title")
-    static let isCompleted = Expression<Bool>("is_completed")
 
-    static func setup() throws -> Connection {
-        let db = try Connection("db.sqlite3")
-        try db.run(tasks.create(ifNotExists: true) { t in
-            t.column(id, primaryKey: .autoincrement)
-            t.column(title)
-            t.column(isCompleted, defaultValue: false)
-        })
-        return db
-    }
+    // MARK: - Tables
 
-    static func fetchAllTasks(db: Connection) throws -> [TaskItem] {
-        return try db.prepare(tasks).map { row in
-            TaskItem(id: row[id], title: row[title], isCompleted: row[isCompleted])
-        }
-    }
+    let utilisateurs = Table("utilisateurs")
+    let exercices = Table("exercices")
+    let seances = Table("seances")
 
-    static func addTask(db: Connection, title text: String) throws {
-        try db.run(tasks.insert(title <- text))
-    }
-    
-    static func toggleTask(db: Connection, id targetId: Int64) throws {
-        let task = tasks.filter(id == targetId)
-        // Find current state to flip it
-        if let current = try db.pluck(task) {
-            try db.run(task.update(isCompleted <- !current[isCompleted]))
-        }
-    }
+    // MARK: - Colonnes Utilisateur
+    let login = Expression<String>("login")
+    let nom = Expression<String>("nom")
+    let prenom = Expression<String>("prenom")
+    let dateNaissance = Expression<Date>("dateNaissance")
+    let motDePasse = Expression<String>("motDePasse")
+    let objectif = Expression<String>("objectif")
+    let poids = Expression<Double>("poids")
+    let taille = Expression<Double>("taille")
+    let IMC = Expression<Double>("IMC")
+    let scoreUtilisateur = Expression<Int>("scoreUtilisateur")
+
+    // MARK: - Colonnes Exercice
+    let idExercice = Expression<Int>("idExercice")
+    let nomExercice = Expression<String>("nom")
+    let duree = Expression<Int>("duree")
+    let muscles = Expression<String>("muscles")  // JSON
+    let objectifExercice = Expression<String>("objectif")
+    let scoreExercice = Expression<Int>("score")
+    let image = Expression<String>("image")
+
+    // MARK: - Colonnes Séance
+    let idSeance = Expression<Int>("idSeance")
+    let loginSeance = Expression<String>("loginUtilisateur")
+    let dureeSeance = Expression<Int>("duree")
+    let objectifSeance = Expression<String>("objectif")
+    let scoreSeance = Expression<Int>("score")
+    let dateSeance = Expression<Date>("date")
+    let exercicesSeance = Expression<String>("exercices")
 }
