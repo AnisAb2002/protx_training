@@ -61,6 +61,10 @@ router.get("/register") { request, context in
 router.post("/register") { request, context in
     let formData = try await request.decodeURLEncoded(as: [String: String].self, context: context)
     let login = formData["login"] ?? ""
+
+    // On récupère l'objectif choisi par l'utilisateur
+    let objectifChoisi = formData["objectif"] ?? "Remise en forme"
+
     let newUser = Utilisateur(
         login: login,
         motDePasse: formData["password"] ?? "",
@@ -69,10 +73,13 @@ router.post("/register") { request, context in
         dateNaissance: Date(),
         poids: Double(formData["poids"] ?? "0") ?? 0.0,
         taille: Double(formData["taille"] ?? "0") ?? 0.0,
-        objectif: formData["objectif"] ?? "Remise en forme",
+        objectif: objectifChoisi,  // Utilisation de la variable ici
         scoreTotal: 0
     )
+
     try db.addUtilisateur(newUser)
+
+    // Redirection directe vers le dashboard avec la session (login)
     return Response.redirect(to: "/?user=\(login)")
 }
 
@@ -85,10 +92,21 @@ router.get("/") { request, context in
     else {
         return Response.redirect(to: "/login")
     }
-    let seances = try db.getSeances(for: currentUser)
-    let exercicesDispo = try db.searchExercices(parMuscle: "")  // On récupère tout
 
-    // On passe les exercicesDispo à la vue
+    // On récupère les séances
+    var seances = try db.getSeances(for: currentUser)
+
+    // NOUVEAU : Pour chaque séance, on va chercher ses exercices et calculer son score
+    for i in 0..<seances.count {
+        if let id = seances[i].id {
+            let exos = try db.getExercices(forSeanceId: id)
+            seances[i].exercices = exos
+            // Le score de la séance est la somme des points de ses exos
+            seances[i].scoreSeance = exos.reduce(0) { $0 + $1.scoreCalories }
+        }
+    }
+
+    let exercicesDispo = try db.searchExercices(parMuscle: "")
     let html = Views.index(
         utilisateurs: [user], seances: seances, exercicesDisponibles: exercicesDispo)
     return Response(
@@ -119,14 +137,6 @@ router.post("/seance/add") { request, context in
     let dateString = formData["date"] ?? ""
     let dateChoisie = dateFormatter.date(from: dateString) ?? Date()  // Aujourd'hui par défaut si erreur
 
-    let nouvelleSeance = Seance(
-        id: nil,
-        utilisateurLogin: login,
-        titre: titre,
-        dateSeance: dateChoisie,  // On utilise la date récupérée !
-        estValidee: false,
-        scoreSeance: 0
-    )
     // 1. Créer la séance (retourne l'ID généré si tu as mis à jour Database.swift)
     // Logique pour enregistrer la séance et ses exercices...
     let seanceId = try db.addSeanceAndReturnId(

@@ -28,6 +28,7 @@ struct Database: @unchecked Sendable {
 
     let idSeance = Expression<Int>("id")
     let userLogin = Expression<String>("userLogin")
+    let titreSeance = Expression<String>("titre")
     let dateSeance = Expression<Date>("date_seance")
     let estValidee = Expression<Bool>("estValidee")
 
@@ -66,6 +67,7 @@ struct Database: @unchecked Sendable {
             seances.create(ifNotExists: true) { t in
                 t.column(idSeance, primaryKey: .autoincrement)
                 t.column(userLogin)
+                t.column(titreSeance)
                 t.column(dateSeance)
                 t.column(estValidee)
                 t.foreignKey(userLogin, references: utilisateurs, loginCol)
@@ -129,6 +131,7 @@ struct Database: @unchecked Sendable {
     {
         let insert = seances.insert(
             self.userLogin <- utilisateurLogin,
+            self.titreSeance <- titre,
             self.dateSeance <- dateSeance_,
             self.estValidee <- false
         )
@@ -143,10 +146,32 @@ struct Database: @unchecked Sendable {
                 Seance(
                     id: row[idSeance],
                     utilisateurLogin: row[userLogin],
-                    titre: "Entraînement",
+                    titre: row[titreSeance],
                     dateSeance: row[dateSeance],
                     estValidee: row[estValidee],
                     scoreSeance: 0
+                ))
+        }
+        return results
+    }
+
+    func getExercices(forSeanceId id: Int) throws -> [Exercice] {
+        let query =
+            seanceExercices
+            .join(exercices, on: exercices[idExo] == seanceExercices[relExoId])
+            .filter(seanceExercices[relSeanceId] == id)
+
+        var results = [Exercice]()
+        for row in try connection.prepare(query) {
+            results.append(
+                Exercice(
+                    id: row[exercices[idExo]],
+                    nom: row[nomExo],
+                    dureeEstimee: 0,
+                    musclePrincipal: row[muscle],
+                    objectifCible: "",
+                    scoreCalories: row[scoreExo],
+                    imageURL: row[imageURL]
                 ))
         }
         return results
@@ -180,8 +205,8 @@ struct Database: @unchecked Sendable {
         // On joint seanceExercices avec exercices pour sommer les scoreExo
         let query =
             seanceExercices
-            .join(exercices, on: relExoId == idExo)
-            .filter(relSeanceId == id)
+            .join(exercices, on: exercices[idExo] == seanceExercices[relExoId])
+            .filter(seanceExercices[relSeanceId] == id)
 
         var scoreTotalSeance = 0
         for row in try connection.prepare(query) {
