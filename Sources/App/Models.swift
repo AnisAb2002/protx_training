@@ -30,7 +30,6 @@ struct Utilisateur: Codable, Sendable {
     var motDePasse: String  // pour se connecter
     var nom: String
     var prenom: String
-    var dateNaissance: Date
     var poids: Double  // kg
     var taille: Double  // cm
     var objectif: String  // "Perte de poids", "Gain de muscle" ...
@@ -54,8 +53,8 @@ struct Exercice: Codable, Sendable {
     var id: Int?  // Auto-incrémenté dans sqlite
     var nom: String
     var dureeEstimee: Int  // minutes
-    var musclePrincipal: String  // Pour la logique de récupération des muscles (Pecs, Dos, etc.)
-    var objectifCible: String  // "Force", "Endurance"
+    var musclePrincipal: String  // Pour la logique de récupération des muscles (Pecs, Dos ...)
+    var objectifCible: String  // "Force", "Endurance" ...
     var scoreCalories: Int  // Points gagnés en faisant l'exercice
     var imageURL: String  // Chemin vers image
 }

@@ -111,7 +111,6 @@ struct Database: @unchecked Sendable {
                 motDePasse: row[motDePasse],
                 nom: row[nom],
                 prenom: row[prenom],
-                dateNaissance: Date(),
                 poids: row[poids],
                 taille: row[taille],
                 objectif: "Musculation",

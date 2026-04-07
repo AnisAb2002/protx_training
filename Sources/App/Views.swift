@@ -303,7 +303,7 @@ struct Views {
         finalHTML += footer()
         return finalHTML
     }
-
+    // MARK: Profil
     static func profil(user: Utilisateur) -> String {
         return """
             \(header(title: "Mon Profil", currentUser: user.login))
