@@ -126,6 +126,29 @@ router.get("/profil") { request, context in
         body: .init(byteBuffer: ByteBuffer(string: html)))
 }
 
+router.post("/profil/update") { request, context in
+    let formData = try await request.decodeURLEncoded(as: [String: String].self, context: context)
+
+    let login = formData["login"] ?? ""
+
+    // On récupère l'utilisateur actuel pour ne pas perdre les données non éditées (score, pass, etc.)
+    guard var user = try db.getUtilisateur(id: login) else {
+        return Response.redirect(to: "/login")
+    }
+
+    // Mise à jour des propriétés
+    user.nom = formData["nom"] ?? user.nom
+    user.prenom = formData["prenom"] ?? user.prenom
+    user.poids = Double(formData["poids"] ?? "0") ?? user.poids
+    user.taille = Double(formData["taille"] ?? "0") ?? user.taille
+
+    // Sauvegarde en base
+    try db.updateUtilisateur(user)
+
+    // Redirection vers le profil avec un petit paramètre optionnel pour confirmer le succès si tu veux
+    return Response.redirect(to: "/profil?user=\(login)")
+}
+
 // --- ACTIONS CRUD ---
 
 router.post("/seance/add") { request, context in
@@ -163,16 +186,8 @@ router.get("/seance/new") { request, context in
     guard let currentUser = request.uri.queryParameters.get("user") else {
         return Response.redirect(to: "/login")
     }
-
-    // On récupère tous les exercices disponibles pour que l'utilisateur puisse choisir
-    let tousLesExercices = try db.searchExercices(parMuscle: "")
-    let html = Views.nouvelleSeance(exercices: tousLesExercices, user: currentUser)
-
-    return Response(
-        status: .ok,
-        headers: [.contentType: "text/html"],
-        body: .init(byteBuffer: ByteBuffer(string: html))
-    )
+    // Au lieu d'une page séparée, on renvoie à l'index (où se trouve le formulaire)
+    return Response.redirect(to: "/?user=\(currentUser)")
 }
 
 router.post("/seance/valider/:id") { request, context in

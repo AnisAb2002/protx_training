@@ -116,6 +116,18 @@ struct Database: @unchecked Sendable {
         return nil
     }
 
+    func updateUtilisateur(_ user: Utilisateur) throws {
+        let target = utilisateurs.filter(loginCol == user.login)
+        try connection.run(
+            target.update(
+                nom <- user.nom,
+                prenom <- user.prenom,
+                poids <- user.poids,
+                taille <- user.taille
+                    // On ne change généralement pas le login (clé primaire) ni le score ici
+            ))
+    }
+
     // AJOUT : Ajouter une séance (Manquait pour main.swift)
     func addSeance(_ seance: Seance) throws {
         let insert = seances.insert(

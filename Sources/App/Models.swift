@@ -68,4 +68,5 @@ struct Seance: Codable, Sendable {
     var dateSeance: Date
     var estValidee: Bool  // si la date est passée et l'utilisateur à validé
     var scoreSeance: Int  // Total des points de la séance
+    var exercices: [Exercice] = []
 }
