@@ -64,7 +64,8 @@ struct Views {
                     .exo-img { 
                         width: 100%; 
                         height: 150px !important; /* Photo plus grande */
-                        object-fit: cover; 
+                        object-fit: contain; 
+                        background: #fff;
                         border-bottom: 1px solid #333;
                         display: block;
                     }
@@ -124,6 +125,27 @@ struct Views {
                     button { background-color: #2b2b2b; border: 1px solid #444; color: white; }
                     button:hover { background-color: #3b3b3b; }
                 </style>
+                <script>
+                function filterExercices() {
+                    let searchTerm = document.getElementById('searchExo').value.toLowerCase();
+                    let muscleTerm = document.getElementById('filterMuscle').value;
+                    let items = document.querySelectorAll('.check-item');
+
+                    items.forEach(item => {
+                        let name = item.getAttribute('data-name');
+                        let muscle = item.getAttribute('data-muscle');
+                        
+                        let matchName = name.includes(searchTerm);
+                        let matchMuscle = (muscleTerm === "" || muscle === muscleTerm);
+
+                        if (matchName && matchMuscle) {
+                            item.style.display = "flex";
+                        } else {
+                            item.style.display = "none";
+                        }
+                    });
+                }
+                </script>
             </head>
             <body>
                 \(navigation)
@@ -231,12 +253,12 @@ struct Views {
         var selectionExosHTML = ""
         for exo in exercicesDisponibles {
             selectionExosHTML += """
-                <label class="check-item">
+                <label class="check-item" data-name="\(exo.nom.lowercased())" data-muscle="\(exo.musclePrincipal)">
                     <input type="checkbox" name="exo_\(exo.id ?? 0)" value="\(exo.id ?? 0)">
                     <img src="/\(exo.imageURL)" class="exo-img" onerror="this.src='https://placehold.co/400x250?text=Exercice'">
                     <div class="check-content">
                         <span class="exo-name">\(exo.nom)</span>
-                        <span class="exo-points">\(exo.scoreCalories) XP</span>
+                        <span class="exo-points">\(exo.scoreCalories) XP | \(exo.musclePrincipal)</span>
                     </div>
                 </label>
                 """
@@ -260,6 +282,19 @@ struct Views {
                         <label>Date <input type="date" name="date" required></label>
                     </div>
                     <label>Choisir les exercices :</label>
+                    <div class="grid" style="margin-bottom: 1rem;">
+                    <input type="text" id="searchExo" placeholder="Rechercher un exercice..." onkeyup="filterExercices()">
+                    <select id="filterMuscle" onchange="filterExercices()">
+                        <option value="">Tous les muscles</option>
+                        <option value="Pectoraux">Pectoraux</option>
+                        <option value="Dos">Dos</option>
+                        <option value="Jambes">Jambes</option>
+                        <option value="Biceps">Biceps</option>
+                        <option value="Triceps">Triceps</option>
+                        <option value="Abdos">Abdos</option>
+                        <option value="Épaules">Épaules</option>
+                    </select>
+                </div>
                     <div class="grid-selection">\(selectionExosHTML)</div>
                     <button type="submit" style="margin-top:1.5rem;">Créer ma séance</button>
                 </form>

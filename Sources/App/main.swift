@@ -2,7 +2,7 @@ import Foundation
 import Hummingbird
 import Logging
 
-// MARK: - Extension Request
+// MARK: Récupère un bloc de texte brute dans le buffer puis le décode en string 
 extension Request {
     func decodeURLEncoded<T: Decodable>(as type: T.Type, context: some RequestContext) async throws
         -> T
@@ -13,13 +13,14 @@ extension Request {
     }
 }
 
+// MARK: Donner le bon format à la date
 let dateFormatter: DateFormatter = {
     let df = DateFormatter()
     df.dateFormat = "yyyy-MM-dd"
     return df
 }()
 
-// MARK: - Configuration
+// MARK: Configuration
 let router = Router()
 let logger = Logger(label: "ProtxTraining")
 
@@ -204,6 +205,7 @@ router.post("/seance/valider/:id") { request, context in
     return Response.redirect(to: "/?user=\(login)")
 }
 
+// MARK: Supprimer une séance
 router.post("/seance/delete/:id") { request, context in
     let formData = try await request.decodeURLEncoded(as: [String: String].self, context: context)
     let login = formData["user"] ?? ""
@@ -213,27 +215,7 @@ router.post("/seance/delete/:id") { request, context in
     return Response.redirect(to: "/?user=\(login)")
 }
 
-router.post("/exercices/add") { request, context in
-    let formData = try await request.decodeURLEncoded(as: [String: String].self, context: context)
-    let login = formData["user"] ?? ""
-
-    let nouvelExo = Exercice(
-        id: nil,
-        nom: formData["nom"] ?? "",
-        dureeEstimee: 10,
-        musclePrincipal: formData["muscle"] ?? "",
-        objectifCible: "Renforcement",
-        scoreCalories: Int(formData["xp"] ?? "10") ?? 10,
-        imageURL: formData["image"] ?? ""
-    )
-
-    // CORRECTION : Vérifie si ta fonction dans Database.swift s'appelle addExercice ou createExercice
-    try db.addExercice(nouvelExo)
-
-    return Response.redirect(to: "/exercices?user=\(login)")
-}
-
-// --- LANCEMENT ---
+// MARK: lancement
 let app = Application(
     router: router,
     configuration: .init(address: .hostname("0.0.0.0", port: 8080))
