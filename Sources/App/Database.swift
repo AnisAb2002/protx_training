@@ -124,6 +124,17 @@ struct Database: @unchecked Sendable {
         try connection.run(insert)
     }
 
+    func addSeanceAndReturnId(utilisateurLogin: String, titre: String, dateSeance_: Date) throws
+        -> Int
+    {
+        let insert = seances.insert(
+            self.userLogin <- utilisateurLogin,
+            self.dateSeance <- dateSeance_,
+            self.estValidee <- false
+        )
+        let rowId = try connection.run(insert)
+        return Int(rowId)
+    }
     func getSeances(for user: String) throws -> [Seance] {
         let query = seances.filter(userLogin == user).order(dateSeance.desc)
         var results = [Seance]()
@@ -155,6 +166,35 @@ struct Database: @unchecked Sendable {
             imageURL <- exo.imageURL
         )
         try connection.run(insert)
+    }
+    func lierExerciceASeance(seanceId: Int, exerciceId: Int) throws {
+        let insert = seanceExercices.insert(
+            relSeanceId <- seanceId,
+            relExoId <- exerciceId
+        )
+        try connection.run(insert)
+    }
+
+    func completerSeance(id: Int, login: String) throws {
+        // 1. Calculer le score total des exercices liés à cette séance
+        // On joint seanceExercices avec exercices pour sommer les scoreExo
+        let query =
+            seanceExercices
+            .join(exercices, on: relExoId == idExo)
+            .filter(relSeanceId == id)
+
+        var scoreTotalSeance = 0
+        for row in try connection.prepare(query) {
+            scoreTotalSeance += row[scoreExo]
+        }
+
+        // 2. Marquer la séance comme validée (pour qu'elle n'affiche plus le bouton)
+        let s = seances.filter(idSeance == id)
+        try connection.run(s.update(estValidee <- true))
+
+        // 3. Ajouter les points au score de l'utilisateur
+        let user = utilisateurs.filter(loginCol == login)
+        try connection.run(user.update(scoreTotal += scoreTotalSeance))
     }
 
     func searchExercices(parMuscle: String) throws -> [Exercice] {

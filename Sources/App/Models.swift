@@ -1,7 +1,7 @@
 import Foundation
 
 // MARK: - Enums de Progression
-/// définition de les niveaux d'utilisateurs pour les classer
+// définition de les niveaux d'utilisateurs pour les classer
 enum Niveaux: String, Codable, Sendable {
     case debutant = "Débutant"
     case intermediaire = "Intermédiaire"

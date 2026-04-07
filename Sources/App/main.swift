@@ -13,6 +13,12 @@ extension Request {
     }
 }
 
+let dateFormatter: DateFormatter = {
+    let df = DateFormatter()
+    df.dateFormat = "yyyy-MM-dd"
+    return df
+}()
+
 // MARK: - Configuration
 let router = Router()
 let logger = Logger(label: "ProtxTraining")
@@ -72,6 +78,7 @@ router.post("/register") { request, context in
 
 // --- ROUTES PROTEGEES ---
 
+// Dans main.swift
 router.get("/") { request, context in
     guard let currentUser = request.uri.queryParameters.get("user"),
         let user = try db.getUtilisateur(id: currentUser)
@@ -79,19 +86,11 @@ router.get("/") { request, context in
         return Response.redirect(to: "/login")
     }
     let seances = try db.getSeances(for: currentUser)
-    let html = Views.index(utilisateurs: [user], seances: seances)
-    return Response(
-        status: .ok, headers: [.contentType: "text/html"],
-        body: .init(byteBuffer: ByteBuffer(string: html)))
-}
+    let exercicesDispo = try db.searchExercices(parMuscle: "")  // On récupère tout
 
-router.get("/exercices") { request, context in
-    guard let currentUser = request.uri.queryParameters.get("user") else {
-        return Response.redirect(to: "/login")
-    }
-    let searchTerm = request.uri.queryParameters.get("search") ?? ""
-    let exercices = try db.searchExercices(parMuscle: searchTerm)
-    let html = Views.exercices(liste: exercices, query: searchTerm, currentUser: currentUser)
+    // On passe les exercicesDispo à la vue
+    let html = Views.index(
+        utilisateurs: [user], seances: seances, exercicesDisponibles: exercicesDispo)
     return Response(
         status: .ok, headers: [.contentType: "text/html"],
         body: .init(byteBuffer: ByteBuffer(string: html)))
@@ -116,18 +115,67 @@ router.post("/seance/add") { request, context in
     let login = formData["user"] ?? ""
     let titre = formData["titre"] ?? "Séance"
 
+    // RECUPÉRATION DE LA DATE DU FORMULAIRE
+    let dateString = formData["date"] ?? ""
+    let dateChoisie = dateFormatter.date(from: dateString) ?? Date()  // Aujourd'hui par défaut si erreur
+
     let nouvelleSeance = Seance(
         id: nil,
         utilisateurLogin: login,
         titre: titre,
-        dateSeance: Date(),
+        dateSeance: dateChoisie,  // On utilise la date récupérée !
         estValidee: false,
         scoreSeance: 0
     )
+    // 1. Créer la séance (retourne l'ID généré si tu as mis à jour Database.swift)
+    // Logique pour enregistrer la séance et ses exercices...
+    let seanceId = try db.addSeanceAndReturnId(
+        utilisateurLogin: login,
+        titre: titre,
+        dateSeance_: dateChoisie  // Assure-toi que ta fonction DB accepte la date
+    )
 
-    // CORRECTION : Vérifie si ta fonction dans Database.swift s'appelle addSeance ou createSeance
-    try db.addSeance(nouvelleSeance)
+    // 2. Récupérer les IDs des exercices cochés
+    // Note: Dans le HTML, les checkboxes doivent avoir le nom "exercices"
+    // On décode ici manuellement les IDs si nécessaire ou via un format spécifique
+    let exercicesSelectionnes = formData.filter { $0.key.prefix(4) == "exo_" }.map { $0.value }
 
+    for exoIdString in exercicesSelectionnes {
+        if let exoId = Int(exoIdString) {
+            try db.lierExerciceASeance(seanceId: seanceId, exerciceId: exoId)
+        }
+    }
+
+    return Response.redirect(to: "/?user=\(login)")
+}
+// Page pour créer une séance avec sélection d'exercices
+router.get("/seance/new") { request, context in
+    guard let currentUser = request.uri.queryParameters.get("user") else {
+        return Response.redirect(to: "/login")
+    }
+
+    // On récupère tous les exercices disponibles pour que l'utilisateur puisse choisir
+    let tousLesExercices = try db.searchExercices(parMuscle: "")
+    let html = Views.nouvelleSeance(exercices: tousLesExercices, user: currentUser)
+
+    return Response(
+        status: .ok,
+        headers: [.contentType: "text/html"],
+        body: .init(byteBuffer: ByteBuffer(string: html))
+    )
+}
+
+router.post("/seance/valider/:id") { request, context in
+    // On récupère le login pour savoir quel utilisateur créditer
+    let formData = try await request.decodeURLEncoded(as: [String: String].self, context: context)
+    let login = formData["user"] ?? ""
+
+    // On récupère l'ID de la séance depuis l'URL
+    if let idString = context.parameters.get("id"), let id = Int(idString) {
+        try db.completerSeance(id: id, login: login)
+    }
+
+    // On redirige vers l'index pour voir le score mis à jour !
     return Response.redirect(to: "/?user=\(login)")
 }
 
