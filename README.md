@@ -1,4 +1,4 @@
-#ProtX Training 🏋️‍♂️
+# ProtX Training
 
 ProtX Training est une application web de suivi de musculation développée en Swift avec le framework Hummingbird. Elle permet aux utilisateurs de planifier des séances, de suivre leur progression via un système d'XP et de visualiser leurs exercices via des démonstrations animées.
 
